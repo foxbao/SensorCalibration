@@ -37,7 +37,8 @@ double cali_scale_degree_ = 0.3;
 double cali_scale_trans_ = 0.06;
 static Eigen::Matrix4d calibration_matrix_ = Eigen::Matrix4d::Identity();
 static Eigen::Matrix4d orign_calibration_matrix_ = Eigen::Matrix4d::Identity();
-std::vector<Eigen::Matrix4d> modification_list_;
+// std::vector<Eigen::Matrix4d> modification_list_;
+std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> modification_list_;
 bool display_mode_ = false;
 int point_size_ = 2;
 
@@ -81,6 +82,8 @@ void CalibrationInit(Eigen::Matrix4d json_param) {
     tmp(0, 3) = transform_flag[3] * cali_scale_trans_;
     tmp(1, 3) = transform_flag[4] * cali_scale_trans_;
     tmp(2, 3) = transform_flag[5] * cali_scale_trans_;
+    // std::cout<<modification_list_[0]<<std::endl;
+    std::cout<<tmp<<std::endl;
     modification_list_[i] = tmp;
   }
   std::cout << "=>Calibration scale Init!\n";
@@ -280,6 +283,7 @@ void ProcessSourceFrame(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloudLidar,
 }
 
 int main(int argc, char **argv) {
+
   if (argc != 4) {
     cout << "Usage: ./run_lidar2lidar <target_pcd_path> <source_pcd_path> <extrinsic_json>"
               "\nexample:\n\t"
@@ -287,6 +291,11 @@ int main(int argc, char **argv) {
             << endl;
     return 0;
   }
+
+  std::cout <<EIGEN_WORLD_VERSION;
+    // std::cout << "Eigen version: " << EIGEN_MAJOR_VERSION << "." 
+    //           << EIGEN_MINOR_VERSION << "." 
+    //           << std::endl;
 
   string target_lidar_path = argv[1];
   string source_lidar_path = argv[2];

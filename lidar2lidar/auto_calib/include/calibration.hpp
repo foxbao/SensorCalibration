@@ -46,7 +46,8 @@ public:
 
 private:
   std::map<int32_t, pcl::PointCloud<pcl::PointXYZI>> pcs_;
-  std::map<int32_t, Eigen::Matrix4d> init_extrinsics_;
+  // std::map<int32_t, Eigen::Matrix4d> init_extrinsics_;
+  std::map<int32_t, Eigen::Matrix4d, std::less<int32_t>, Eigen::aligned_allocator<std::pair<const int32_t, Eigen::Matrix4d>>> init_extrinsics_;
   std::map<int32_t, Eigen::Matrix4d> refined_extrinsics_;
 
   std::unique_ptr<ICPRegistrator> registrator_;

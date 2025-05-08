@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(LidarToImu)
 set(CMAKE_CXX_FLAGS "-std=c++11 -g -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0")
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_BUILD_TYPE Debug)
+
 ## Get Pangolin
 find_package(Pangolin 0.4 REQUIRED)
 include_directories(${Pangolin_INCLUDE_DIRS})
@@ -26,7 +29,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 file(GLOB_RECURSE PARSER_PATH src/*.cpp)
 add_library(${PROJECT_NAME} STATIC ${PARSER_PATH})
-target_link_libraries(${PROJECT_NAME} libjsoncpp.a ${OpenCV_LIBS} ${Boost_SYSTEM_LIBRARY} ceres)
+target_link_libraries(${PROJECT_NAME} jsoncpp ${OpenCV_LIBS} ${Boost_SYSTEM_LIBRARY} ceres)
 
 add_executable(run_lidar2imu src/run_lidar2imu.cpp)
 target_link_libraries(run_lidar2imu ${PROJECT_NAME})

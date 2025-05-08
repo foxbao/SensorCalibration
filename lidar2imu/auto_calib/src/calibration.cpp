@@ -269,6 +269,7 @@ void Calibrator::SaveStitching(const Eigen::Matrix4d transform,
       }
     }
   }
+  std::cout<<pcd_name<<std::endl;
   pcl::io::savePCDFileASCII(pcd_name, *all_cloud);
   all_cloud->clear();
   all_octree->deleteTree();

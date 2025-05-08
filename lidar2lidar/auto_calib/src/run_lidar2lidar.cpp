@@ -73,6 +73,24 @@ void LoadCalibFile(const std::string &filename,
 }
 
 int main(int argc, char *argv[]) {
+
+  int32_t device_id=18;
+  Eigen::Matrix4d init_ext_input = Eigen::Matrix4d::Identity();
+  Eigen::Matrix4d curr_transform = Eigen::Matrix4d::Identity();
+  // std::map<int32_t, Eigen::Matrix4d> init_extrinsics_;
+  std::map<int32_t, Eigen::Matrix4d, std::less<int32_t>, Eigen::aligned_allocator<std::pair<const int32_t, Eigen::Matrix4d>>> init_extrinsics_;
+
+  init_extrinsics_.insert(std::make_pair(device_id, init_ext_input));
+  int32_t slave_id=18;
+  Eigen::Matrix4d T_ms = Eigen::Matrix4d::Identity();
+  Eigen::Matrix4d init_ext = init_extrinsics_[slave_id];
+
+
+  curr_transform = init_ext * T_ms;
+
+  // Eigen::Matrix4d curr_transform = Eigen::Matrix4d::Identity();
+  // curr_transform = init_ext * T_ms;
+
   if (argc != 3) {
     std::cout << "Usage: ./run_lidar2lidar <lidar_file> <calib_file>"
                  "\nexample:\n\t"

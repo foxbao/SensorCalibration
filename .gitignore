@@ -5,6 +5,7 @@ cmake-build-debug/
 cmake-build-release/
 .idea
 .vscode
+*.pcd
 __pycache__/
 *.py[cod]
 *$py.class
