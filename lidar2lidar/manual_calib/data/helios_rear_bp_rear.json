@@ -1,0 +1,20 @@
+{
+    "left_lidar-to-top_center_lidar-extrinsic": {
+        "param_type": "extrinsic",
+        "sensor_name": "p64",
+        "target_sensor_name": "qt",
+        "device_type": "relational",
+        "param": {
+            "sensor_calib": {
+                "data": [
+                    [1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]
+                ],
+                "continuous": true,
+                "rows": 4,
+                "type": 6,
+                "cols": 4
+            },
+            "time_lag": 0
+        }
+    }
+}

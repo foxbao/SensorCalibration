@@ -1,4 +1,5 @@
 {
+    "comment": "transform = [tx, ty, tz, qx, qy, qz, qw]",
     "transform": [
         -12.225191110070822,
         8.42165473242294,

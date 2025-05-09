@@ -19,10 +19,9 @@
 #include <Eigen/Core>
 #include <iostream>
 #include <string>
-#include <Eigen/Geometry>
+
 #include "extrinsic_param.hpp"
-#include <nlohmann/json.hpp>  // JSON 头文件：https://github.com/nlohmann/json
-using json = nlohmann::json;
+
 using namespace std;
 
 #define GL_GPU_MEM_INFO_CURRENT_AVAILABLE_MEM_NVX 0x9049
@@ -115,126 +114,42 @@ void CalibrationScaleChange() {
   std::cout << "=>Calibration scale update done!\n";
 }
 
-std::string GetFileBaseName(const std::string& path) {
-    // 取文件名部分
-    auto pos_slash = path.find_last_of("/\\");
-    std::string filename = (pos_slash == std::string::npos) ? path : path.substr(pos_slash + 1);
-    
-    // 去掉扩展名
-    auto pos_dot = filename.find_last_of(".");
-    return (pos_dot == std::string::npos) ? filename : filename.substr(0, pos_dot);
+void saveResult(const int &frame_id) {
+  std::string file_name =
+      "lidar2lidar_extrinsic_" + std::to_string(frame_id) + ".txt";
+  std::ofstream fCalib(file_name);
+  if (!fCalib.is_open()) {
+    std::cerr << "open file " << file_name << " failed." << std::endl;
+    return;
+  }
+  fCalib << "Extrinsic:" << std::endl;
+  fCalib << "R:\n"
+         << calibration_matrix_(0, 0) << " " << calibration_matrix_(0, 1) << " "
+         << calibration_matrix_(0, 2) << "\n"
+         << calibration_matrix_(1, 0) << " " << calibration_matrix_(1, 1) << " "
+         << calibration_matrix_(1, 2) << "\n"
+         << calibration_matrix_(2, 0) << " " << calibration_matrix_(2, 1) << " "
+         << calibration_matrix_(2, 2) << std::endl;
+  fCalib << "t: " << calibration_matrix_(0, 3) << " "
+         << calibration_matrix_(1, 3) << " " << calibration_matrix_(2, 3)
+         << std::endl;
+
+  fCalib << "************* json format *************" << std::endl;
+  fCalib << "Extrinsic:" << std::endl;
+  fCalib << "[" << calibration_matrix_(0, 0) << "," << calibration_matrix_(0, 1)
+         << "," << calibration_matrix_(0, 2) << "," << calibration_matrix_(0, 3)
+         << "],"
+         << "[" << calibration_matrix_(1, 0) << "," << calibration_matrix_(1, 1)
+         << "," << calibration_matrix_(1, 2) << "," << calibration_matrix_(1, 3)
+         << "],"
+         << "[" << calibration_matrix_(2, 0) << "," << calibration_matrix_(2, 1)
+         << "," << calibration_matrix_(2, 2) << "," << calibration_matrix_(2, 3)
+         << "],"
+         << "[" << calibration_matrix_(3, 0) << "," << calibration_matrix_(3, 1)
+         << "," << calibration_matrix_(3, 2) << "," << calibration_matrix_(3, 3)
+         << "]" << std::endl;
+  fCalib.close();
 }
-
-void saveResult(const int &frame_id, const std::string &base_filename = "")
-{
-    // 1. 构造文件名
-    std::string txt_file = base_filename.empty()
-                               ? "lidar2lidar_extrinsic_" + std::to_string(frame_id) + ".txt"
-                               : base_filename + ".txt";
-    std::string json_file = base_filename.empty()
-                                ? "lidar2lidar_extrinsic_" + std::to_string(frame_id) + ".json"
-                                : base_filename + ".json";
-
-    // 2. 打开 .txt 文件
-    std::ofstream fCalib(txt_file);
-    if (!fCalib.is_open())
-    {
-        std::cerr << "open file " << txt_file << " failed." << std::endl;
-        return;
-    }
-
-    // 3. 提取数据
-    Eigen::Matrix3d R = calibration_matrix_.block<3, 3>(0, 0);
-    Eigen::Vector3d t = calibration_matrix_.block<3, 1>(0, 3);
-    Eigen::Quaterniond q(R);
-    Eigen::Vector3d euler_angles = R.eulerAngles(2, 1, 0); // yaw(Z), pitch(Y), roll(X)
-    double roll_deg = euler_angles(2) * 180.0 / M_PI;
-    double pitch_deg = euler_angles(1) * 180.0 / M_PI;
-    double yaw_deg = euler_angles(0) * 180.0 / M_PI;
-
-    // 4. 写入 txt 文件
-    fCalib << "Extrinsic:" << std::endl;
-    fCalib << "R:\n"
-           << R(0, 0) << " " << R(0, 1) << " " << R(0, 2) << "\n"
-           << R(1, 0) << " " << R(1, 1) << " " << R(1, 2) << "\n"
-           << R(2, 0) << " " << R(2, 1) << " " << R(2, 2) << std::endl;
-    fCalib << "t: " << t.transpose() << std::endl;
-
-    fCalib << "RPY (degrees):" << std::endl;
-    fCalib << "Roll (X): " << roll_deg << std::endl;
-    fCalib << "Pitch (Y): " << pitch_deg << std::endl;
-    fCalib << "Yaw (Z): " << yaw_deg << std::endl;
-
-    fCalib << "Quaternion (x, y, z, w):" << std::endl;
-    fCalib << q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
-
-    fCalib << "************* json format *************" << std::endl;
-    fCalib << "Extrinsic (t + q):" << std::endl;
-    fCalib << "[" << t.x() << ", " << t.y() << ", " << t.z() << ", "
-           << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w() << "]" << std::endl;
-
-    fCalib.close();
-
-    // 5. 写入 JSON 文件
-    json j;
-    j["comment"] = "transform = [tx, ty, tz, qx, qy, qz, qw]";
-    j["transform"] = {
-        t.x(), t.y(), t.z(),
-        q.x(), q.y(), q.z(), q.w()
-    };
-
-    std::ofstream json_out(json_file);
-    if (!json_out.is_open())
-    {
-        std::cerr << "open file " << json_file << " failed." << std::endl;
-        return;
-    }
-    json_out << j.dump(4);
-    json_out.close();
-
-    // 6. 控制台输出
-    std::cout << "✅ 保存外参成功：" << txt_file << " 和 " << json_file << std::endl;
-    std::cout << "RPY (deg): Roll=" << roll_deg << ", Pitch=" << pitch_deg << ", Yaw=" << yaw_deg << std::endl;
-    std::cout << "Quaternion (x, y, z, w): " << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w() << std::endl;
-}
-
-
-// void saveResult(const int &frame_id) {
-//   std::string file_name =
-//       "lidar2lidar_extrinsic_" + std::to_string(frame_id) + ".txt";
-//   std::ofstream fCalib(file_name);
-//   if (!fCalib.is_open()) {
-//     std::cerr << "open file " << file_name << " failed." << std::endl;
-//     return;
-//   }
-//   fCalib << "Extrinsic:" << std::endl;
-//   fCalib << "R:\n"
-//          << calibration_matrix_(0, 0) << " " << calibration_matrix_(0, 1) << " "
-//          << calibration_matrix_(0, 2) << "\n"
-//          << calibration_matrix_(1, 0) << " " << calibration_matrix_(1, 1) << " "
-//          << calibration_matrix_(1, 2) << "\n"
-//          << calibration_matrix_(2, 0) << " " << calibration_matrix_(2, 1) << " "
-//          << calibration_matrix_(2, 2) << std::endl;
-//   fCalib << "t: " << calibration_matrix_(0, 3) << " "
-//          << calibration_matrix_(1, 3) << " " << calibration_matrix_(2, 3)
-//          << std::endl;
-
-//   fCalib << "************* json format *************" << std::endl;
-//   fCalib << "Extrinsic:" << std::endl;
-//   fCalib << "[" << calibration_matrix_(0, 0) << "," << calibration_matrix_(0, 1)
-//          << "," << calibration_matrix_(0, 2) << "," << calibration_matrix_(0, 3)
-//          << "],"
-//          << "[" << calibration_matrix_(1, 0) << "," << calibration_matrix_(1, 1)
-//          << "," << calibration_matrix_(1, 2) << "," << calibration_matrix_(1, 3)
-//          << "],"
-//          << "[" << calibration_matrix_(2, 0) << "," << calibration_matrix_(2, 1)
-//          << "," << calibration_matrix_(2, 2) << "," << calibration_matrix_(2, 3)
-//          << "],"
-//          << "[" << calibration_matrix_(3, 0) << "," << calibration_matrix_(3, 1)
-//          << "," << calibration_matrix_(3, 2) << "," << calibration_matrix_(3, 3)
-//          << "]" << std::endl;
-//   fCalib.close();
-// }
 
 bool ManualCalibration(int key_input) {
   char table[] = {'q', 'a', 'w', 's', 'e', 'd', 'r', 'f', 't', 'g', 'y', 'h'};
@@ -366,8 +281,6 @@ void ProcessSourceFrame(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloudLidar,
   source_colorBuffer_ = colorbuffer;
   std::cout << "Process target lidar frame!\n";
 }
-
-
 
 int main(int argc, char **argv) {
 
@@ -526,9 +439,7 @@ int main(int argc, char **argv) {
       std::cout << "Reset!\n";
     }
     if (pangolin::Pushed(saveImg)) {
-      std::string base_name = GetFileBaseName(extrinsic_json);
-      std::string output_file_name = "lidar2lidar_extrinsic_" + base_name;
-      saveResult(frame_num,output_file_name);
+      saveResult(frame_num);
       std::cout << "\n==>Save Result " << frame_num << std::endl;
       Eigen::Matrix4d transform = calibration_matrix_;
       cout << "Transfromation Matrix:\n" << transform << std::endl;
