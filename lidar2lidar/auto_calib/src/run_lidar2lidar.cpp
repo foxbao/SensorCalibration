@@ -19,38 +19,96 @@ unsigned char color_map[10][3] = {{255, 255, 255}, // "white"
                                   {150, 240, 80},  //
                                   {80, 30, 180}};  //
 
+// void LoadPointCloud(
+//     const std::string &filename,
+//     std::map<int32_t, pcl::PointCloud<pcl::PointXYZI>> &lidar_points)
+// {
+
+//   std::ifstream file(filename);
+//   if (!file.is_open())
+//   {
+//     std::cout << "[ERROR] open file " << filename << " failed." << std::endl;
+//     exit(1);
+//   }
+//   std::string line, tmpStr;
+//   while (getline(file, line))
+//   {
+//     int32_t device_id;
+//     std::string point_cloud_path;
+//     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(
+//         new pcl::PointCloud<pcl::PointXYZI>);
+
+//     std::stringstream ss(line);
+//     ss >> tmpStr >> device_id;
+//     getline(file, line);
+//     ss = std::stringstream(line);
+//     ss >> tmpStr >> point_cloud_path;
+//     if (pcl::io::loadPCDFile(point_cloud_path, *cloud) < 0)
+//     {
+//       std::cout << "[ERROR] cannot open pcd_file: " << point_cloud_path << "\n";
+//       exit(1);
+//     }
+//     lidar_points.insert(std::make_pair(device_id, *cloud));
+//   }
+// }
+
+
 void LoadPointCloud(
     const std::string &filename,
-    std::map<int32_t, pcl::PointCloud<pcl::PointXYZI>> &lidar_points)
+    std::map<int32_t, pcl::PointCloud<pcl::PointXYZI>> &lidar_points,
+    double filter_threshold=-1.0)  // 加入 filter_threshold 参数
 {
-
   std::ifstream file(filename);
   if (!file.is_open())
   {
     std::cout << "[ERROR] open file " << filename << " failed." << std::endl;
     exit(1);
   }
+
   std::string line, tmpStr;
   while (getline(file, line))
   {
     int32_t device_id;
     std::string point_cloud_path;
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(
-        new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
 
     std::stringstream ss(line);
     ss >> tmpStr >> device_id;
+
     getline(file, line);
     ss = std::stringstream(line);
     ss >> tmpStr >> point_cloud_path;
+
     if (pcl::io::loadPCDFile(point_cloud_path, *cloud) < 0)
     {
       std::cout << "[ERROR] cannot open pcd_file: " << point_cloud_path << "\n";
       exit(1);
     }
-    lidar_points.insert(std::make_pair(device_id, *cloud));
+
+    // 👉 若为 device_id == 1 且启用了过滤（threshold > 0），则进行筛选
+    if (device_id == 1 && filter_threshold > 0.0)
+    {
+      pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud(new pcl::PointCloud<pcl::PointXYZI>);
+      for (const auto &pt : cloud->points)
+      {
+        double distance = std::sqrt(pt.x * pt.x + pt.y * pt.y + pt.z * pt.z);
+        if (distance >= filter_threshold)
+        {
+          filtered_cloud->points.push_back(pt);
+        }
+      }
+      filtered_cloud->width = filtered_cloud->points.size();
+      filtered_cloud->height = 1;
+      filtered_cloud->is_dense = true;
+      lidar_points.insert(std::make_pair(device_id, *filtered_cloud));
+    }
+    else
+    {
+      lidar_points.insert(std::make_pair(device_id, *cloud));
+    }
   }
 }
+
 
 void LoadCalibFile(const std::string &filename,
                    std::map<int32_t, InitialExtrinsic> &calib_extrinsic)
@@ -82,58 +140,58 @@ void LoadCalibFile(const std::string &filename,
   }
 }
 
-
 void SaveCalibrationResultsToJson(const std::map<int32_t, Eigen::Matrix4d> &refined_extrinsics,
-                                 const std::string &output_file)
+                                  const std::string &output_file)
 {
-    json j;
-    for (const auto &entry : refined_extrinsics)
-    {
-        // int32_t device_id = entry.first;  // 不再使用 device_id 作为 key
-        const Eigen::Matrix4d &T = entry.second;
+  json j;
+  for (const auto &entry : refined_extrinsics)
+  {
+    // int32_t device_id = entry.first;  // 不再使用 device_id 作为 key
+    const Eigen::Matrix4d &T = entry.second;
 
-        // 提取平移
-        Eigen::Vector3d translation = T.block<3, 1>(0, 3);
+    // 提取平移
+    Eigen::Vector3d translation = T.block<3, 1>(0, 3);
 
-        // 提取旋转矩阵并转换为四元数
-        Eigen::Matrix3d rotation = T.block<3, 3>(0, 0);
-        Eigen::Quaterniond q(rotation);
+    // 提取旋转矩阵并转换为四元数
+    Eigen::Matrix3d rotation = T.block<3, 3>(0, 0);
+    Eigen::Quaterniond q(rotation);
 
-        // 构造 transform: [tx, ty, tz, qx, qy, qz, qw]
-        std::vector<double> transform = {
-            translation.x(), translation.y(), translation.z(),
-            q.x(), q.y(), q.z(), q.w()};
+    // 构造 transform: [tx, ty, tz, qx, qy, qz, qw]
+    std::vector<double> transform = {
+        translation.x(), translation.y(), translation.z(),
+        q.x(), q.y(), q.z(), q.w()};
 
-        // 直接存储 transform，不嵌套在 device_id 下
-        j["transform"] = transform;
-        break;  // 如果只需要第一个设备的变换，就 break；否则需要调整结构
-    }
+    // 直接存储 transform，不嵌套在 device_id 下
+    j["transform"] = transform;
+    break; // 如果只需要第一个设备的变换，就 break；否则需要调整结构
+  }
 
-    std::ofstream o(output_file);
-    if (!o.is_open())
-    {
-        std::cerr << "[ERROR] Could not write JSON to " << output_file << std::endl;
-        return;
-    }
+  std::ofstream o(output_file);
+  if (!o.is_open())
+  {
+    std::cerr << "[ERROR] Could not write JSON to " << output_file << std::endl;
+    return;
+  }
 
-    o << j.dump(4); // pretty print with indent=4
-    std::cout << "Saved calibration to JSON file: " << output_file << std::endl;
+  o << j.dump(4); // pretty print with indent=4
+  std::cout << "Saved calibration to JSON file: " << output_file << std::endl;
 }
 
-
-
-void SaveCalibrationResults(const std::map<int32_t, Eigen::Matrix4d>& refined_extrinsics, 
-                          const std::string& output_file) {
+void SaveCalibrationResults(const std::map<int32_t, Eigen::Matrix4d> &refined_extrinsics,
+                            const std::string &output_file)
+{
   std::ofstream outfile(output_file);
-  if (!outfile.is_open()) {
+  if (!outfile.is_open())
+  {
     std::cerr << "Error: Could not open output file " << output_file << std::endl;
     return;
   }
 
-  for (const auto& entry : refined_extrinsics) {
+  for (const auto &entry : refined_extrinsics)
+  {
     int32_t device_id = entry.first;
-    const Eigen::Matrix4d& transform = entry.second;
-    
+    const Eigen::Matrix4d &transform = entry.second;
+
     outfile << "device_id: " << device_id << std::endl;
     outfile << "transformation matrix:" << std::endl;
     outfile << transform << std::endl;
@@ -162,7 +220,8 @@ int main(int argc, char *argv[])
 
   // Eigen::Matrix4d curr_transform = Eigen::Matrix4d::Identity();
   // curr_transform = init_ext * T_ms;
-  std::string filename = "calibration_results.json"; 
+  std::string filename = "calibration_results.json";
+  double filter_threshold = -1.0; // 默认：-1 表示不启用过滤
   if (argc < 3)
   {
     std::cout << "Usage: ./run_lidar2lidar <lidar_file> <calib_file>"
@@ -174,11 +233,16 @@ int main(int argc, char *argv[])
   }
   auto lidar_file = argv[1];
   auto calib_file = argv[2];
-    if (argc >= 4) {
-        filename = argv[3];  // 第4个参数（索引3）作为文件名
-    }
+  if (argc >= 4)
+  {
+    filename = argv[3]; // 第4个参数（索引3）作为文件名
+  }
+  if (argc >= 5)
+  {
+    filter_threshold = std::stod(argv[4]); // 第五个参数转换为 double
+  }
   std::map<int32_t, pcl::PointCloud<pcl::PointXYZI>> lidar_points;
-  LoadPointCloud(lidar_file, lidar_points);
+  LoadPointCloud(lidar_file, lidar_points,filter_threshold);
   std::map<int32_t, InitialExtrinsic> extrinsics;
   LoadCalibFile(calib_file, extrinsics);
 
@@ -194,7 +258,7 @@ int main(int argc, char *argv[])
   std::map<int32_t, Eigen::Matrix4d> refined_extrinsics =
       calibrator.GetFinalTransformation();
 
-    // Save calibration results to file
+  // Save calibration results to file
   SaveCalibrationResults(refined_extrinsics, "calibration_results.txt");
   SaveCalibrationResultsToJson(refined_extrinsics, filename);
 

@@ -114,42 +114,104 @@ void CalibrationScaleChange() {
   std::cout << "=>Calibration scale update done!\n";
 }
 
-void saveResult(const int &frame_id) {
-  std::string file_name =
-      "lidar2lidar_extrinsic_" + std::to_string(frame_id) + ".txt";
-  std::ofstream fCalib(file_name);
-  if (!fCalib.is_open()) {
-    std::cerr << "open file " << file_name << " failed." << std::endl;
-    return;
-  }
-  fCalib << "Extrinsic:" << std::endl;
-  fCalib << "R:\n"
-         << calibration_matrix_(0, 0) << " " << calibration_matrix_(0, 1) << " "
-         << calibration_matrix_(0, 2) << "\n"
-         << calibration_matrix_(1, 0) << " " << calibration_matrix_(1, 1) << " "
-         << calibration_matrix_(1, 2) << "\n"
-         << calibration_matrix_(2, 0) << " " << calibration_matrix_(2, 1) << " "
-         << calibration_matrix_(2, 2) << std::endl;
-  fCalib << "t: " << calibration_matrix_(0, 3) << " "
-         << calibration_matrix_(1, 3) << " " << calibration_matrix_(2, 3)
-         << std::endl;
+#include <Eigen/Geometry>
 
-  fCalib << "************* json format *************" << std::endl;
-  fCalib << "Extrinsic:" << std::endl;
-  fCalib << "[" << calibration_matrix_(0, 0) << "," << calibration_matrix_(0, 1)
-         << "," << calibration_matrix_(0, 2) << "," << calibration_matrix_(0, 3)
-         << "],"
-         << "[" << calibration_matrix_(1, 0) << "," << calibration_matrix_(1, 1)
-         << "," << calibration_matrix_(1, 2) << "," << calibration_matrix_(1, 3)
-         << "],"
-         << "[" << calibration_matrix_(2, 0) << "," << calibration_matrix_(2, 1)
-         << "," << calibration_matrix_(2, 2) << "," << calibration_matrix_(2, 3)
-         << "],"
-         << "[" << calibration_matrix_(3, 0) << "," << calibration_matrix_(3, 1)
-         << "," << calibration_matrix_(3, 2) << "," << calibration_matrix_(3, 3)
-         << "]" << std::endl;
-  fCalib.close();
+void saveResult(const int &frame_id) {
+    std::string file_name = "lidar2lidar_extrinsic_" + std::to_string(frame_id) + ".txt";
+    std::ofstream fCalib(file_name);
+    if (!fCalib.is_open()) {
+        std::cerr << "open file " << file_name << " failed." << std::endl;
+        return;
+    }
+
+    // 提取旋转矩阵
+    Eigen::Matrix3d R = calibration_matrix_.block<3,3>(0,0);
+    
+    // 计算RPY欧拉角（弧度）
+    Eigen::Vector3d euler_angles = R.eulerAngles(2,1,0); // ZYX顺序，即yaw, pitch, roll
+    
+    // 转换为角度制
+    double roll_deg = euler_angles(2) * 180.0 / M_PI;
+    double pitch_deg = euler_angles(1) * 180.0 / M_PI;
+    double yaw_deg = euler_angles(0) * 180.0 / M_PI;
+
+    fCalib << "Extrinsic:" << std::endl;
+    fCalib << "R:\n"
+           << calibration_matrix_(0, 0) << " " << calibration_matrix_(0, 1) << " "
+           << calibration_matrix_(0, 2) << "\n"
+           << calibration_matrix_(1, 0) << " " << calibration_matrix_(1, 1) << " "
+           << calibration_matrix_(1, 2) << "\n"
+           << calibration_matrix_(2, 0) << " " << calibration_matrix_(2, 1) << " "
+           << calibration_matrix_(2, 2) << std::endl;
+    
+    fCalib << "t: " << calibration_matrix_(0, 3) << " "
+           << calibration_matrix_(1, 3) << " " << calibration_matrix_(2, 3)
+           << std::endl;
+    
+    // 添加RPY输出
+    fCalib << "RPY (degrees):" << std::endl;
+    fCalib << "Roll (X): " << roll_deg << std::endl;
+    fCalib << "Pitch (Y): " << pitch_deg << std::endl;
+    fCalib << "Yaw (Z): " << yaw_deg << std::endl;
+
+    fCalib << "************* json format *************" << std::endl;
+    fCalib << "Extrinsic:" << std::endl;
+    fCalib << "[" << calibration_matrix_(0, 0) << "," << calibration_matrix_(0, 1)
+           << "," << calibration_matrix_(0, 2) << "," << calibration_matrix_(0, 3)
+           << "],"
+           << "[" << calibration_matrix_(1, 0) << "," << calibration_matrix_(1, 1)
+           << "," << calibration_matrix_(1, 2) << "," << calibration_matrix_(1, 3)
+           << "],"
+           << "[" << calibration_matrix_(2, 0) << "," << calibration_matrix_(2, 1)
+           << "," << calibration_matrix_(2, 2) << "," << calibration_matrix_(2, 3)
+           << "],"
+           << "[" << calibration_matrix_(3, 0) << "," << calibration_matrix_(3, 1)
+           << "," << calibration_matrix_(3, 2) << "," << calibration_matrix_(3, 3)
+           << "]" << std::endl;
+    
+    fCalib.close();
+    
+    // 控制台输出RPY信息
+    std::cout << "Saved extrinsic calibration with RPY (degrees):" << std::endl;
+    std::cout << "Roll: " << roll_deg << ", Pitch: " << pitch_deg << ", Yaw: " << yaw_deg << std::endl;
 }
+
+// void saveResult(const int &frame_id) {
+//   std::string file_name =
+//       "lidar2lidar_extrinsic_" + std::to_string(frame_id) + ".txt";
+//   std::ofstream fCalib(file_name);
+//   if (!fCalib.is_open()) {
+//     std::cerr << "open file " << file_name << " failed." << std::endl;
+//     return;
+//   }
+//   fCalib << "Extrinsic:" << std::endl;
+//   fCalib << "R:\n"
+//          << calibration_matrix_(0, 0) << " " << calibration_matrix_(0, 1) << " "
+//          << calibration_matrix_(0, 2) << "\n"
+//          << calibration_matrix_(1, 0) << " " << calibration_matrix_(1, 1) << " "
+//          << calibration_matrix_(1, 2) << "\n"
+//          << calibration_matrix_(2, 0) << " " << calibration_matrix_(2, 1) << " "
+//          << calibration_matrix_(2, 2) << std::endl;
+//   fCalib << "t: " << calibration_matrix_(0, 3) << " "
+//          << calibration_matrix_(1, 3) << " " << calibration_matrix_(2, 3)
+//          << std::endl;
+
+//   fCalib << "************* json format *************" << std::endl;
+//   fCalib << "Extrinsic:" << std::endl;
+//   fCalib << "[" << calibration_matrix_(0, 0) << "," << calibration_matrix_(0, 1)
+//          << "," << calibration_matrix_(0, 2) << "," << calibration_matrix_(0, 3)
+//          << "],"
+//          << "[" << calibration_matrix_(1, 0) << "," << calibration_matrix_(1, 1)
+//          << "," << calibration_matrix_(1, 2) << "," << calibration_matrix_(1, 3)
+//          << "],"
+//          << "[" << calibration_matrix_(2, 0) << "," << calibration_matrix_(2, 1)
+//          << "," << calibration_matrix_(2, 2) << "," << calibration_matrix_(2, 3)
+//          << "],"
+//          << "[" << calibration_matrix_(3, 0) << "," << calibration_matrix_(3, 1)
+//          << "," << calibration_matrix_(3, 2) << "," << calibration_matrix_(3, 3)
+//          << "]" << std::endl;
+//   fCalib.close();
+// }
 
 bool ManualCalibration(int key_input) {
   char table[] = {'q', 'a', 'w', 's', 'e', 'd', 'r', 'f', 't', 'g', 'y', 'h'};
@@ -281,6 +343,8 @@ void ProcessSourceFrame(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloudLidar,
   source_colorBuffer_ = colorbuffer;
   std::cout << "Process target lidar frame!\n";
 }
+
+
 
 int main(int argc, char **argv) {
 
