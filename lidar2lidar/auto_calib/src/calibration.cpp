@@ -271,3 +271,9 @@ bool Calibrator::GroundPlaneExtraction(
 std::map<int32_t, Eigen::Matrix4d> Calibrator::GetFinalTransformation() {
   return refined_extrinsics_;
 }
+
+std::map<int32_t, Eigen::Matrix4d, std::less<int32_t>,
+         Eigen::aligned_allocator<std::pair<const int32_t, Eigen::Matrix4d>>> 
+Calibrator::GetInitExtrinsics() const {
+    return init_extrinsics_;
+}

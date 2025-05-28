@@ -34,8 +34,8 @@ pangolin::GlBuffer *source_colorBuffer_;
 pangolin::GlBuffer *target_vertexBuffer_;
 pangolin::GlBuffer *target_colorBuffer_;
 
-double cali_scale_degree_ = 0.3;
-double cali_scale_trans_ = 0.06;
+double cali_scale_degree_ = 0.1;
+double cali_scale_trans_ = 0.03;
 static Eigen::Matrix4d calibration_matrix_ = Eigen::Matrix4d::Identity();
 static Eigen::Matrix4d orign_calibration_matrix_ = Eigen::Matrix4d::Identity();
 // std::vector<Eigen::Matrix4d> modification_list_;
@@ -88,6 +88,64 @@ void CalibrationInit(Eigen::Matrix4d json_param) {
     modification_list_[i] = tmp;
   }
   std::cout << "=>Calibration scale Init!\n";
+}
+
+void DrawCoordinateAxis(float length = 5.0f)
+{
+    glLineWidth(3.0f);
+    glBegin(GL_LINES);
+
+    // X axis - Red
+    glColor3f(1.0f, 0.0f, 0.0f);  // 红色
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    glVertex3f(length, 0.0f, 0.0f);
+
+    // Y axis - Green
+    glColor3f(0.0f, 1.0f, 0.0f);  // 绿色
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    glVertex3f(0.0f, length, 0.0f);
+
+    // Z axis - Blue
+    glColor3f(0.0f, 0.0f, 1.0f);  // 蓝色
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    glVertex3f(0.0f, 0.0f, length);
+
+    glEnd();
+}
+
+void DrawTransformedAxis(const Eigen::Matrix4d& transform, float length = 1.0f)
+{
+    glLineWidth(3.0f);
+    glBegin(GL_LINES);
+
+    // 原点
+    Eigen::Vector4d origin(0, 0, 0, 1);
+    Eigen::Vector4d x_end(length, 0, 0, 1);
+    Eigen::Vector4d y_end(0, length, 0, 1);
+    Eigen::Vector4d z_end(0, 0, length, 1);
+
+    // 变换后的位置
+    Eigen::Vector4d o_t = transform * origin;
+    Eigen::Vector4d x_t = transform * x_end;
+    Eigen::Vector4d y_t = transform * y_end;
+    Eigen::Vector4d z_t = transform * z_end;
+
+    // X轴 - 红
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glVertex3f(o_t.x(), o_t.y(), o_t.z());
+    glVertex3f(x_t.x(), x_t.y(), x_t.z());
+
+    // Y轴 - 绿
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glVertex3f(o_t.x(), o_t.y(), o_t.z());
+    glVertex3f(y_t.x(), y_t.y(), y_t.z());
+
+    // Z轴 - 蓝
+    glColor3f(0.0f, 0.0f, 1.0f);
+    glVertex3f(o_t.x(), o_t.y(), o_t.z());
+    glVertex3f(z_t.x(), z_t.y(), z_t.z());
+
+    glEnd();
 }
 
 void CalibrationScaleChange() {
@@ -172,7 +230,16 @@ void saveResult(const int &frame_id, const std::string &base_filename = "")
     fCalib << "Extrinsic (t + q):" << std::endl;
     fCalib << "[" << t.x() << ", " << t.y() << ", " << t.z() << ", "
            << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w() << "]" << std::endl;
-
+    fCalib << "Extrinsic Matrix:" << std::endl;
+    fCalib << "["
+           << calibration_matrix_(0,0) << "," << calibration_matrix_(0,1) << "," << calibration_matrix_(0,2) << "," << calibration_matrix_(0,3) << "],"
+           << "["
+           << calibration_matrix_(1,0) << "," << calibration_matrix_(1,1) << "," << calibration_matrix_(1,2) << "," << calibration_matrix_(1,3) << "],"
+           << "["
+           << calibration_matrix_(2,0) << "," << calibration_matrix_(2,1) << "," << calibration_matrix_(2,2) << "," << calibration_matrix_(2,3) << "],"
+           << "["
+           << calibration_matrix_(3,0) << "," << calibration_matrix_(3,1) << "," << calibration_matrix_(3,2) << "," << calibration_matrix_(3,3) << "]"
+           << std::endl;
     fCalib.close();
 
     // 5. 写入 JSON 文件
@@ -197,44 +264,6 @@ void saveResult(const int &frame_id, const std::string &base_filename = "")
     std::cout << "RPY (deg): Roll=" << roll_deg << ", Pitch=" << pitch_deg << ", Yaw=" << yaw_deg << std::endl;
     std::cout << "Quaternion (x, y, z, w): " << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w() << std::endl;
 }
-
-
-// void saveResult(const int &frame_id) {
-//   std::string file_name =
-//       "lidar2lidar_extrinsic_" + std::to_string(frame_id) + ".txt";
-//   std::ofstream fCalib(file_name);
-//   if (!fCalib.is_open()) {
-//     std::cerr << "open file " << file_name << " failed." << std::endl;
-//     return;
-//   }
-//   fCalib << "Extrinsic:" << std::endl;
-//   fCalib << "R:\n"
-//          << calibration_matrix_(0, 0) << " " << calibration_matrix_(0, 1) << " "
-//          << calibration_matrix_(0, 2) << "\n"
-//          << calibration_matrix_(1, 0) << " " << calibration_matrix_(1, 1) << " "
-//          << calibration_matrix_(1, 2) << "\n"
-//          << calibration_matrix_(2, 0) << " " << calibration_matrix_(2, 1) << " "
-//          << calibration_matrix_(2, 2) << std::endl;
-//   fCalib << "t: " << calibration_matrix_(0, 3) << " "
-//          << calibration_matrix_(1, 3) << " " << calibration_matrix_(2, 3)
-//          << std::endl;
-
-//   fCalib << "************* json format *************" << std::endl;
-//   fCalib << "Extrinsic:" << std::endl;
-//   fCalib << "[" << calibration_matrix_(0, 0) << "," << calibration_matrix_(0, 1)
-//          << "," << calibration_matrix_(0, 2) << "," << calibration_matrix_(0, 3)
-//          << "],"
-//          << "[" << calibration_matrix_(1, 0) << "," << calibration_matrix_(1, 1)
-//          << "," << calibration_matrix_(1, 2) << "," << calibration_matrix_(1, 3)
-//          << "],"
-//          << "[" << calibration_matrix_(2, 0) << "," << calibration_matrix_(2, 1)
-//          << "," << calibration_matrix_(2, 2) << "," << calibration_matrix_(2, 3)
-//          << "],"
-//          << "[" << calibration_matrix_(3, 0) << "," << calibration_matrix_(3, 1)
-//          << "," << calibration_matrix_(3, 2) << "," << calibration_matrix_(3, 3)
-//          << "]" << std::endl;
-//   fCalib.close();
-// }
 
 bool ManualCalibration(int key_input) {
   char table[] = {'q', 'a', 'w', 's', 'e', 'd', 'r', 'f', 't', 'g', 'y', 'h'};
@@ -306,10 +335,13 @@ void ProcessTargetFrame(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloudLidar,
       colorUpdate[ipt * 3 + 1] = static_cast<unsigned char>(colorFake.g);
       colorUpdate[ipt * 3 + 2] = static_cast<unsigned char>(colorFake.b);
     } else {
-      for (int k = 0; k < 3; k++) {
-        colorUpdate[ipt * 3 + k] =
-            static_cast<unsigned char>(cloudLidar->points[ipt].intensity);
-      }
+      // for (int k = 0; k < 3; k++) {
+      //   colorUpdate[ipt * 3 + k] =
+      //       static_cast<unsigned char>(cloudLidar->points[ipt].intensity);
+      // }
+      colorUpdate[ipt * 3 + 0] = 0;    // R
+      colorUpdate[ipt * 3 + 1] = 255;  // G
+      colorUpdate[ipt * 3 + 2] = 255;  // B
     }
   }
 
@@ -352,10 +384,13 @@ void ProcessSourceFrame(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloudLidar,
       colorUpdate[ipt * 3 + 2] = static_cast<unsigned char>(colorFake.g);
     } else {
       // red
-      colorUpdate[ipt * 3 + 0] =
-          static_cast<unsigned char>(cloudLidar->points[ipt].intensity);
-      colorUpdate[ipt * 3 + 1] = 0;
-      colorUpdate[ipt * 3 + 2] = 0;
+      // colorUpdate[ipt * 3 + 0] =
+      //     static_cast<unsigned char>(cloudLidar->points[ipt].intensity);
+      // colorUpdate[ipt * 3 + 1] = 0;
+      // colorUpdate[ipt * 3 + 2] = 0;
+      colorUpdate[ipt * 3 + 0] = 255;  // R
+      colorUpdate[ipt * 3 + 1] = 0;    // G
+      colorUpdate[ipt * 3 + 2] = 0;    // B
     }
   }
 
@@ -479,8 +514,23 @@ int main(int argc, char **argv) {
   while (!pangolin::ShouldQuit()) {
     s_cam.Follow(Twc);
     d_cam.Activate(s_cam);
+
+
+
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // 绘制坐标轴
+    DrawCoordinateAxis();
+
+
+    DrawTransformedAxis(calibration_matrix_, 3.0f); // 可调长度
+
+
+    
+
+
+    // DrawTransformedCoordinateAxis(calibration_matrix_, 5.5f);  // 可调整长度
 
     if (displayMode) {
       if (display_mode_ == false) {
@@ -527,7 +577,7 @@ int main(int argc, char **argv) {
     }
     if (pangolin::Pushed(saveImg)) {
       std::string base_name = GetFileBaseName(extrinsic_json);
-      std::string output_file_name = "lidar2lidar_extrinsic_" + base_name;
+      std::string output_file_name = "output/" + base_name;
       saveResult(frame_num,output_file_name);
       std::cout << "\n==>Save Result " << frame_num << std::endl;
       Eigen::Matrix4d transform = calibration_matrix_;

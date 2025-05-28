@@ -16,18 +16,21 @@
 #include "logging.hpp"
 #include "registration_icp.hpp"
 
-struct InitialExtrinsic {
+struct InitialExtrinsic
+{
   Eigen::Vector3d euler_angles;
   Eigen::Vector3d t_matrix;
 };
-struct PlaneParam {
+struct PlaneParam
+{
   PlaneParam() {}
   PlaneParam(const Eigen::Vector3d &n, double i) : normal(n), intercept(i) {}
   Eigen::Vector3d normal;
   double intercept;
 };
 
-class Calibrator {
+class Calibrator
+{
 public:
   Calibrator();
   void LoadCalibrationData(
@@ -43,6 +46,9 @@ public:
                         pcl::PointCloud<pcl::PointXYZI>::Ptr ng_cloud,
                         PlaneParam &plane);
   std::map<int32_t, Eigen::Matrix4d> GetFinalTransformation();
+  std::map<int32_t, Eigen::Matrix4d, std::less<int32_t>,
+           Eigen::aligned_allocator<std::pair<const int32_t, Eigen::Matrix4d>>>
+  GetInitExtrinsics() const;
 
 private:
   std::map<int32_t, pcl::PointCloud<pcl::PointXYZI>> pcs_;

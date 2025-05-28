@@ -91,6 +91,11 @@ int main(int argc, char *argv[]) {
   // calibration
   Calibrator calibrator;
   calibrator.LoadCalibrationData(lidar_points, extrinsics);
+
+  auto init_map = calibrator.GetInitExtrinsics();
+  for (const auto& pair : init_map) {
+      std::cout << "Lidar ID: " << pair.first << "\nMatrix:\n" << pair.second << "\n";
+  }
   auto time_begin = std::chrono::steady_clock::now();
   calibrator.Calibrate();
   auto time_end = std::chrono::steady_clock::now();
