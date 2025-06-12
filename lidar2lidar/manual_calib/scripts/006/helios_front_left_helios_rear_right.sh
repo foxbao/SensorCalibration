@@ -1,0 +1,1 @@
+./bin/run_lidar2lidar data/006/006_calibrate/202506091416_record/helios_front_left/1749449807.025903674.pcd data/006/006_calibrate/202506091416_record/helios_rear_right/1749449807.030239696.pcd data/006/initial/helios_front_left_helios_rear_right.json

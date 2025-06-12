@@ -472,7 +472,7 @@ int main(int argc, char **argv) {
   pangolin::Var<int> pointSize("cp.Point Size", 2, 0, 8);
   pangolin::Var<double> degreeStep("cp.deg step", cali_scale_degree_, 0,
                                    1); // logscale
-  pangolin::Var<double> tStep("cp.t step(cm)", 6, 0, 15);
+  pangolin::Var<double> tStep("cp.t step(cm)", 2, 0, 15);
 
   pangolin::Var<bool> addXdegree("cp.+ x degree", false, false);
   pangolin::Var<bool> minusXdegree("cp.- x degree", false, false);
