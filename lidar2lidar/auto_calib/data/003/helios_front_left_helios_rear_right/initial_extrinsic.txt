@@ -1,0 +1,4 @@
+device_id: 0
+(Roll,Pitch,Yaw,tx,ty,tz): 0 0 0 0 0 0
+device_id: 1
+(Roll,Pitch,Yaw,tx,ty,tz): -178.123 179.26 0.132836 -12.3034   8.46082 -0.357343

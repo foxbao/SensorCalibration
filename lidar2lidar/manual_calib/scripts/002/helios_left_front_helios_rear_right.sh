@@ -1,1 +1,1 @@
-./bin/run_lidar2lidar data/002/calib_recorder_0509/202505091446_record/lidar_helios_front_left/1746773183.023390378.pcd data/002/calib_recorder_0509/202505091446_record/lidar_helios_rear_right/1746773183.029552816.pcd data/002/initial/helios_front_left_helios_rear_right.json
+./bin/run_lidar2lidar data/002/calib_recorder_0604/helios_front_left/lidar_helios_front_left_1749026748.500048.pcd data/002/calib_recorder_0604/helios_rear_right/lidar_helios_rear_right_1749026749.099967.pcd data/002/initial/helios_front_left_helios_rear_right.json

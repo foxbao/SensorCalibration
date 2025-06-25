@@ -1,3 +1,0 @@
-It is hard to deny that the police who carry guns have conducted various forms of violence in recent years around the world in both developing and developed worlds. Such a fact leads some impressionable people to generate the opinion that if police force is equiped with firearms, there will be a higher level of voilence in the society. Such statement suffers from both logical and factual fallacies, and it needs to be examined meticulously. As far as effectiveness, human psychology and police management are concerned, I strongly disagree with such opinion.
-
-First and foremost, 

@@ -1,0 +1,4 @@
+device_id: 0
+path: data/003/qingdao/20250522/20250522_out/1/lidar/helios_front_left/1747896943.099888086.pcd
+device_id: 1
+path: data/003/qingdao/20250522/20250522_out/1/lidar/helios_rear_right/1747896943.099764824.pcd

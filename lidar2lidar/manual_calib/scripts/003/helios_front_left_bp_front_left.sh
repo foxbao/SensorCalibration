@@ -1,1 +1,1 @@
-./bin/run_lidar2lidar data/003/006_calibrate/202506091416_record/helios_front_left/1749449807.025903674.pcd data/006/006_calibrate/202506091416_record/bp_front_left/1749449807.021896296.pcd data/006/006_initial/helios_front_left_bp_front_left.json
+./bin/run_lidar2lidar data/003/qingdao/20250522/20250522_out/1/lidar/helios_front_left/1747896943.099888086.pcd data/003/qingdao/20250522/20250522_out/1/lidar/bp_front_left/1747896943.000529289.pcd data/003/initial/helios_front_left_bp_front_left.json
