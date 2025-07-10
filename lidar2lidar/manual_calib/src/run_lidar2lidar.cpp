@@ -183,7 +183,32 @@ std::string GetFileBaseName(const std::string& path) {
     return (pos_dot == std::string::npos) ? filename : filename.substr(0, pos_dot);
 }
 
-void saveResult(const int &frame_id, const std::string &base_filename = "")
+
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr Colorize(
+    const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud,
+    uint8_t r, uint8_t g, uint8_t b)
+{
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_rgb(new pcl::PointCloud<pcl::PointXYZRGB>);
+    cloud_rgb->reserve(cloud->size());
+
+    for (const auto &pt : cloud->points) {
+        pcl::PointXYZRGB pt_rgb;
+        pt_rgb.x = pt.x;
+        pt_rgb.y = pt.y;
+        pt_rgb.z = pt.z;
+        pt_rgb.r = r;
+        pt_rgb.g = g;
+        pt_rgb.b = b;
+        cloud_rgb->push_back(pt_rgb);
+    }
+    return cloud_rgb;
+}
+
+// void saveResult(const int &frame_id, const std::string &base_filename = "")
+void saveResult(const int &frame_id,
+                const std::string &base_filename,
+                const pcl::PointCloud<pcl::PointXYZI>::Ptr &source_cloud,
+                const pcl::PointCloud<pcl::PointXYZI>::Ptr &target_cloud)
 {
     // 1. 构造文件名
     std::string txt_file = base_filename.empty()
@@ -250,6 +275,13 @@ void saveResult(const int &frame_id, const std::string &base_filename = "")
         q.x(), q.y(), q.z(), q.w()
     };
 
+  // 加入 T_<base_name> 字段
+  if (!base_filename.empty()) {
+      std::string base_name = GetFileBaseName(base_filename);
+      std::string key_name = "Tx_" + base_name;
+      j[key_name] = j["transform"];
+  }
+
     std::ofstream json_out(json_file);
     if (!json_out.is_open())
     {
@@ -263,6 +295,40 @@ void saveResult(const int &frame_id, const std::string &base_filename = "")
     std::cout << "✅ 保存外参成功：" << txt_file << " 和 " << json_file << std::endl;
     std::cout << "RPY (deg): Roll=" << roll_deg << ", Pitch=" << pitch_deg << ", Yaw=" << yaw_deg << std::endl;
     std::cout << "Quaternion (x, y, z, w): " << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w() << std::endl;
+
+
+
+      // 7. 保存彩色点云合并结果
+    // Step 1: 染色 target_cloud（青色）
+    auto target_cloud_rgb = Colorize(target_cloud, 0, 255, 255);
+
+    // Step 2: 对 source_cloud 做变换
+    pcl::PointCloud<pcl::PointXYZI>::Ptr transformed_source(new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::transformPointCloud(*source_cloud, *transformed_source, calibration_matrix_);
+
+    // Step 3: 染色 transformed_source（红色）
+    auto transformed_source_rgb = Colorize(transformed_source, 255, 0, 0);
+
+    // Step 4: 合并两个点云
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr merged_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    *merged_cloud = *target_cloud_rgb + *transformed_source_rgb;
+
+    // Step 5: 保存到文件
+    std::string merged_pcd_file = base_filename + ".pcd";
+    pcl::io::savePCDFileBinary(merged_pcd_file, *merged_cloud);
+    std::cout << "✅ 合并彩色点云已保存：" << merged_pcd_file << std::endl;
+
+    // // 7. 生成合并点云并保存
+    // pcl::PointCloud<pcl::PointXYZI>::Ptr transformed_source(new pcl::PointCloud<pcl::PointXYZI>);
+    // pcl::transformPointCloud(*source_cloud, *transformed_source, calibration_matrix_);
+
+    // pcl::PointCloud<pcl::PointXYZI>::Ptr merged_cloud(new pcl::PointCloud<pcl::PointXYZI>);
+    // *merged_cloud = *target_cloud + *transformed_source;
+
+    // std::string merged_pcd_file = base_filename + "_merged.pcd";
+    // pcl::io::savePCDFileBinary(merged_pcd_file, *merged_cloud);
+
+    // std::cout << "✅ 合并点云保存成功：" << merged_pcd_file << std::endl;
 }
 
 bool ManualCalibration(int key_input) {
@@ -578,7 +644,8 @@ int main(int argc, char **argv) {
     if (pangolin::Pushed(saveImg)) {
       std::string base_name = GetFileBaseName(extrinsic_json);
       std::string output_file_name = "output/" + base_name;
-      saveResult(frame_num,output_file_name);
+      // saveResult(frame_num,output_file_name);
+      saveResult(frame_num, output_file_name, source_cloud, target_cloud);
       std::cout << "\n==>Save Result " << frame_num << std::endl;
       Eigen::Matrix4d transform = calibration_matrix_;
       cout << "Transfromation Matrix:\n" << transform << std::endl;
