@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 指定配置文件路径
-CONFIG_FILE=cfgs/001.yaml
+CONFIG_FILE=cfgs/004.yaml
 PCD1=$(yq '.helios_rear_right_pcd' "$CONFIG_FILE")
 PCD2=$(yq '.bp_rear_right_pcd' "$CONFIG_FILE")
 

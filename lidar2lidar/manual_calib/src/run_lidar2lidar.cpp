@@ -204,7 +204,6 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr Colorize(
     return cloud_rgb;
 }
 
-// void saveResult(const int &frame_id, const std::string &base_filename = "")
 void saveResult(const int &frame_id,
                 const std::string &base_filename,
                 const pcl::PointCloud<pcl::PointXYZI>::Ptr &source_cloud,
@@ -247,6 +246,8 @@ void saveResult(const int &frame_id,
     fCalib << "Roll (X): " << roll_deg << std::endl;
     fCalib << "Pitch (Y): " << pitch_deg << std::endl;
     fCalib << "Yaw (Z): " << yaw_deg << std::endl;
+    fCalib << "RPYXYZ:" << std::endl;
+    fCalib << roll_deg << " "<<pitch_deg<<" "<<yaw_deg<<" "<<t.x()<<" "<<t.y()<<" "<<t.z() << std::endl;
 
     fCalib << "Quaternion (x, y, z, w):" << std::endl;
     fCalib << q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
@@ -296,8 +297,6 @@ void saveResult(const int &frame_id,
     std::cout << "RPY (deg): Roll=" << roll_deg << ", Pitch=" << pitch_deg << ", Yaw=" << yaw_deg << std::endl;
     std::cout << "Quaternion (x, y, z, w): " << q.x() << ", " << q.y() << ", " << q.z() << ", " << q.w() << std::endl;
 
-
-
       // 7. 保存彩色点云合并结果
     // Step 1: 染色 target_cloud（青色）
     auto target_cloud_rgb = Colorize(target_cloud, 0, 255, 255);
@@ -317,18 +316,6 @@ void saveResult(const int &frame_id,
     std::string merged_pcd_file = base_filename + ".pcd";
     pcl::io::savePCDFileBinary(merged_pcd_file, *merged_cloud);
     std::cout << "✅ 合并彩色点云已保存：" << merged_pcd_file << std::endl;
-
-    // // 7. 生成合并点云并保存
-    // pcl::PointCloud<pcl::PointXYZI>::Ptr transformed_source(new pcl::PointCloud<pcl::PointXYZI>);
-    // pcl::transformPointCloud(*source_cloud, *transformed_source, calibration_matrix_);
-
-    // pcl::PointCloud<pcl::PointXYZI>::Ptr merged_cloud(new pcl::PointCloud<pcl::PointXYZI>);
-    // *merged_cloud = *target_cloud + *transformed_source;
-
-    // std::string merged_pcd_file = base_filename + "_merged.pcd";
-    // pcl::io::savePCDFileBinary(merged_pcd_file, *merged_cloud);
-
-    // std::cout << "✅ 合并点云保存成功：" << merged_pcd_file << std::endl;
 }
 
 bool ManualCalibration(int key_input) {
@@ -472,22 +459,18 @@ void ProcessSourceFrame(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloudLidar,
 
 int main(int argc, char **argv) {
 
-  if (argc != 4) {
-    cout << "Usage: ./run_lidar2lidar <target_pcd_path> <source_pcd_path> <extrinsic_json>"
-              "\nexample:\n\t"
-              "./bin/run_lidar2lidar data/qt.pcd data/p64.pcd data/p64-to-qt-extrinsic.json"
+  if (argc != 4 && argc != 5) {
+      cout << "Usage: ./run_lidar2lidar <target_pcd_path> <source_pcd_path> <extrinsic_json> [scene_id]"
+            << "\nexample:\n\t"
+            << "./bin/run_lidar2lidar data/qt.pcd data/p64.pcd data/p64-to-qt-extrinsic.json 004"
             << endl;
-    return 0;
+      return 0;
   }
-
-  std::cout <<EIGEN_WORLD_VERSION;
-    // std::cout << "Eigen version: " << EIGEN_MAJOR_VERSION << "." 
-    //           << EIGEN_MINOR_VERSION << "." 
-    //           << std::endl;
 
   string target_lidar_path = argv[1];
   string source_lidar_path = argv[2];
-  string extrinsic_json = argv[3];
+  string extrinsic_json    = argv[3];
+  string scene_id = (argc == 5) ? argv[4] : "";   // 可选参数
   // load target lidar points
   pcl::PointCloud<pcl::PointXYZI>::Ptr target_cloud(
       new pcl::PointCloud<pcl::PointXYZI>);
@@ -591,11 +574,6 @@ int main(int argc, char **argv) {
 
 
     DrawTransformedAxis(calibration_matrix_, 3.0f); // 可调长度
-
-
-    
-
-
     // DrawTransformedCoordinateAxis(calibration_matrix_, 5.5f);  // 可调整长度
 
     if (displayMode) {
@@ -642,9 +620,19 @@ int main(int argc, char **argv) {
       std::cout << "Reset!\n";
     }
     if (pangolin::Pushed(saveImg)) {
+      // std::string base_name = GetFileBaseName(extrinsic_json);
+      // std::string output_file_name = "output/" + base_name;
+      // saveResult(frame_num, output_file_name, source_cloud, target_cloud);
       std::string base_name = GetFileBaseName(extrinsic_json);
-      std::string output_file_name = "output/" + base_name;
-      // saveResult(frame_num,output_file_name);
+      std::string output_dir = "output";
+
+      // 如果传了 scene_id，则追加目录
+      if (!scene_id.empty()) {
+          output_dir += "/" + scene_id;
+      }
+      boost::filesystem::create_directories(output_dir);  // 确保目录存在
+
+      std::string output_file_name = output_dir + "/" + base_name;
       saveResult(frame_num, output_file_name, source_cloud, target_cloud);
       std::cout << "\n==>Save Result " << frame_num << std::endl;
       Eigen::Matrix4d transform = calibration_matrix_;

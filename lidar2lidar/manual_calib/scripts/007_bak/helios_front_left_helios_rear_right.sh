@@ -1,0 +1,1 @@
+./bin/run_lidar2lidar data/007/202506201755/helios_front_left/1750413360.017318166.pcd data/007/202506201755/helios_rear_right/1750413360.018322078.pcd data/007/initial/helios_front_left_helios_rear_right.json

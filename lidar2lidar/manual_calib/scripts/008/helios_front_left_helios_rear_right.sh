@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # 指定配置文件路径
-CONFIG_FILE=cfgs/003.yaml
+CONFIG_FILE=cfgs/008.yaml
 PCD1=$(yq '.helios_front_left_pcd' "$CONFIG_FILE")
-PCD2=$(yq '.bp_front_left_pcd' "$CONFIG_FILE")
+PCD2=$(yq '.helios_rear_right_pcd' "$CONFIG_FILE")
 
-INIT_FILE=$(yq '.helios_front_left_bp_front_left_init_file' "$CONFIG_FILE")
+INIT_FILE=$(yq '.helios_front_left_helios_rear_right_init_file' "$CONFIG_FILE")
 
 echo "PCD1 is: $PCD1"
 echo "PCD2 is: $PCD2"
