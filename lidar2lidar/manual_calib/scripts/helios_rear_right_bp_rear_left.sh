@@ -1,6 +1,6 @@
 #!/bin/bash
 # 指定场景号
-SCENE_ID=007
+SCENE_ID=001
 # 指定配置文件路径
 CONFIG_FILE="cfgs/${SCENE_ID}.yaml"
 PCD1=$(yq '.helios_rear_right_pcd' "$CONFIG_FILE")

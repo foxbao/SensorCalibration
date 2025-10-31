@@ -1,1 +1,16 @@
-./bin/run_lidar2lidar data/005/005_calibrate/202506131415_record/helios_front_left/1749795341.029541305.pcd data/005/005_calibrate/202506131415_record/bp_front_left/1749795341.022249473.pcd data/005/initial/helios_front_left_bp_front_left.json
+#!/bin/bash
+# 指定场景号
+SCENE_ID=005
+# 指定配置文件路径
+CONFIG_FILE="cfgs/${SCENE_ID}.yaml"
+PCD1=$(yq '.helios_front_left_pcd' "$CONFIG_FILE")
+PCD2=$(yq '.bp_front_left_pcd' "$CONFIG_FILE")
+
+INIT_FILE=$(yq '.helios_front_left_bp_front_left_init_file' "$CONFIG_FILE")
+
+echo "PCD1 is: $PCD1"
+echo "PCD2 is: $PCD2"
+echo "INIT_FILE is: $INIT_FILE"
+
+
+./bin/run_lidar2lidar "$PCD1" "$PCD2" "$INIT_FILE" "$SCENE_ID"

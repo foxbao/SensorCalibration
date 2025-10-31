@@ -196,9 +196,6 @@ bool ManualCalibration(int key_input) {
   return real_hit;
 }
 
-
-
-
 int main(int argc, char **argv) {
   if (argc != 5) {
     cout << "Usage: ./run_lidar2camera <image_path> <pcd_path> "
@@ -227,11 +224,7 @@ int main(int argc, char **argv) {
   // load intrinsic
   Eigen::Matrix3d K;
   std::vector<double> dist;
-  // std::string cam_model = "pinhole"; // 默认是普通相机
-  std::string cam_model = "fisheye"; // 默认是普通相机
-  LoadIntrinsic(intrinsic_json, K, dist, cam_model);
-
-  // LoadIntrinsic(intrinsic_json, K, dist);
+  LoadIntrinsic(intrinsic_json, K, dist);
   for (size_t i = 0; i < dist.size(); i++) {
     distortions_.push_back(dist[i]);
   }
@@ -243,8 +236,6 @@ int main(int argc, char **argv) {
             << K(1, 0) << " " << K(1, 1) << " " << K(1, 2) << "\n"
             << K(2, 0) << " " << K(2, 1) << " " << K(2, 2) << "\n";
   std::cout << "dist:\n" << dist[0] << " " << dist[1] << "\n";
-  std::cout << "dist size: " << dist.size() << " model: " << cam_model << std::endl;
-
 
   // load extrinsic
   Eigen::Matrix4d json_param;
@@ -331,10 +322,8 @@ int main(int argc, char **argv) {
   mat_calib_box.push_back(addZtrans);
   mat_calib_box.push_back(minusZtrans);
 
-  // cv::Mat current_frame = projector.ProjectToRawImage(
-  //     img, intrinsic_matrix_, dist, calibration_matrix_);
   cv::Mat current_frame = projector.ProjectToRawImage(
-      img, intrinsic_matrix_, dist, calibration_matrix_, cam_model);
+      img, intrinsic_matrix_, dist, calibration_matrix_);
   int frame_num = 0;
 
   std::cout << "\n=>START\n";
@@ -344,14 +333,14 @@ int main(int argc, char **argv) {
       if (display_mode_ == false) {
         projector.setDisplayMode(true);
         current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_,
-                                                    dist, calibration_matrix_, cam_model);
+                                                    dist, calibration_matrix_);
         display_mode_ = true;
       }
     } else {
       if (display_mode_ == true) {
         projector.setDisplayMode(false);
         current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_,
-                                                    dist, calibration_matrix_, cam_model);
+                                                    dist, calibration_matrix_);
         display_mode_ = false;
       }
     }
@@ -360,14 +349,14 @@ int main(int argc, char **argv) {
       if (filter_mode_ == false) {
         projector.setFilterMode(true);
         current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_,
-                                                    dist, calibration_matrix_, cam_model);
+                                                    dist, calibration_matrix_);
         filter_mode_ = true;
       }
     } else {
       if (filter_mode_ == true) {
         projector.setFilterMode(false);
         current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_,
-                                                    dist, calibration_matrix_, cam_model);
+                                                    dist, calibration_matrix_);
         filter_mode_ = false;
       }
     }
@@ -393,7 +382,7 @@ int main(int argc, char **argv) {
       int ptsize = pointSize.Get();
       projector.setPointSize(ptsize);
       current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_, dist,
-                                                  calibration_matrix_, cam_model);
+                                                  calibration_matrix_);
       std::cout << "point size changed to " << ptsize << std::endl;
     }
     for (int i = 0; i < 12; i++) {
@@ -401,32 +390,32 @@ int main(int argc, char **argv) {
         calibration_matrix_ = calibration_matrix_ * modification_list_[i];
         std::cout << "Changed!\n";
         current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_,
-                                                    dist, calibration_matrix_, cam_model);
+                                                    dist, calibration_matrix_);
       }
     }
 
     if (pangolin::Pushed(addFx)) {
       intrinsic_matrix_(0, 0) *= cali_scale_fxfy_;
       current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_, dist,
-                                                  calibration_matrix_, cam_model);
+                                                  calibration_matrix_);
       std::cout << "fx changed to " << intrinsic_matrix_(0, 0) << std::endl;
     }
     if (pangolin::Pushed(minusFx)) {
       intrinsic_matrix_(0, 0) /= cali_scale_fxfy_;
       current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_, dist,
-                                                  calibration_matrix_, cam_model);
+                                                  calibration_matrix_);
       std::cout << "fx changed to " << intrinsic_matrix_(0, 0) << std::endl;
     }
     if (pangolin::Pushed(addFy)) {
       intrinsic_matrix_(1, 1) *= cali_scale_fxfy_;
       current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_, dist,
-                                                  calibration_matrix_, cam_model);
+                                                  calibration_matrix_);
       std::cout << "fy changed to " << intrinsic_matrix_(1, 1) << std::endl;
     }
     if (pangolin::Pushed(minusFy)) {
       intrinsic_matrix_(1, 1) /= cali_scale_fxfy_;
       current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_, dist,
-                                                  calibration_matrix_, cam_model);
+                                                  calibration_matrix_);
       std::cout << "fy changed to " << intrinsic_matrix_(1, 1) << std::endl;
     }
 
@@ -434,7 +423,7 @@ int main(int argc, char **argv) {
       calibration_matrix_ = orign_calibration_matrix_;
       intrinsic_matrix_ = orign_intrinsic_matrix_;
       current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_, dist,
-                                                  calibration_matrix_, cam_model);
+                                                  calibration_matrix_);
       std::cout << "Reset!\n";
     }
     if (pangolin::Pushed(saveImg)) {
@@ -452,7 +441,7 @@ int main(int argc, char **argv) {
         cout << "\nTransfromation Matrix:\n" << transform << std::endl;
       }
       current_frame = projector.ProjectToRawImage(img, intrinsic_matrix_, dist,
-                                                  calibration_matrix_, cam_model);
+                                                  calibration_matrix_);
     }
 
     imageArray = current_frame.data;

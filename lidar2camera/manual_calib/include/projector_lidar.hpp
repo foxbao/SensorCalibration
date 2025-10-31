@@ -206,8 +206,10 @@ public:
     return outImg;
   }
 
+  // NOTE: cam_model: if equals "fisheye" then use fisheye undistort, else use pinhole
   cv::Mat ProjectToRawImage(cv::Mat img, Eigen::Matrix3d K,
-                            std::vector<double> D, Eigen::Matrix4d json_param) {
+                            std::vector<double> D, Eigen::Matrix4d json_param,
+                            const std::string &cam_model = "") {
     cv::Mat K1, D1, R1, T1;
     float k[9], d[8], r[9], t[3];
 
@@ -221,12 +223,13 @@ public:
     k[7] = K(2, 1);
     k[8] = K(2, 2);
 
-    // d[0] = D(0);
-    // d[1] = D(1);
-    // d[2] = D(2);
-    // d[3] = D(3);
-    for (size_t i = 0; i < D.size(); i++) {
+    // copy distortion coefficients (up to 8)
+    for (size_t i = 0; i < D.size() && i < 8; i++) {
       d[i] = D[i];
+    }
+    // zero-fill remaining
+    for (size_t i = D.size(); i < 8; i++) {
+      d[i] = 0.0f;
     }
 
     r[0] = json_param(0, 0);
@@ -243,13 +246,63 @@ public:
     t[1] = json_param(1, 3);
     t[2] = json_param(2, 3);
 
-    K1 = cv::Mat(3, 3, CV_32FC1, k);
-    D1 = cv::Mat(D.size(), 1, CV_32FC1, d);
-    R1 = cv::Mat(3, 3, CV_32FC1, r);
-    T1 = cv::Mat(3, 1, CV_32FC1, t);
-    // cv::Mat img = cv::imread(imgName);
-    return ProjectToRawMat(img, K1, D1, R1, T1);
+    K1 = cv::Mat(3, 3, CV_32FC1, k).clone();
+    D1 = cv::Mat(static_cast<int>(D.size()), 1, CV_32FC1, d).clone();
+    R1 = cv::Mat(3, 3, CV_32FC1, r).clone();
+    T1 = cv::Mat(3, 1, CV_32FC1, t).clone();
+
+    // choose fisheye or pinhole undistort map
+    if (cam_model == "fisheye") {
+      return ProjectToFisheyeMat(img, K1, D1, R1, T1);
+    } else {
+      return ProjectToRawMat(img, K1, D1, R1, T1);
+    }
   }
+
+  // cv::Mat ProjectToRawImage(cv::Mat img, Eigen::Matrix3d K,
+  //                           std::vector<double> D, Eigen::Matrix4d json_param) {
+  //   cv::Mat K1, D1, R1, T1;
+  //   float k[9], d[8], r[9], t[3];
+
+  //   k[0] = K(0, 0);
+  //   k[1] = K(0, 1);
+  //   k[2] = K(0, 2);
+  //   k[3] = K(1, 0);
+  //   k[4] = K(1, 1);
+  //   k[5] = K(1, 2);
+  //   k[6] = K(2, 0);
+  //   k[7] = K(2, 1);
+  //   k[8] = K(2, 2);
+
+  //   // d[0] = D(0);
+  //   // d[1] = D(1);
+  //   // d[2] = D(2);
+  //   // d[3] = D(3);
+  //   for (size_t i = 0; i < D.size(); i++) {
+  //     d[i] = D[i];
+  //   }
+
+  //   r[0] = json_param(0, 0);
+  //   r[1] = json_param(0, 1);
+  //   r[2] = json_param(0, 2);
+  //   r[3] = json_param(1, 0);
+  //   r[4] = json_param(1, 1);
+  //   r[5] = json_param(1, 2);
+  //   r[6] = json_param(2, 0);
+  //   r[7] = json_param(2, 1);
+  //   r[8] = json_param(2, 2);
+
+  //   t[0] = json_param(0, 3);
+  //   t[1] = json_param(1, 3);
+  //   t[2] = json_param(2, 3);
+
+  //   K1 = cv::Mat(3, 3, CV_32FC1, k);
+  //   D1 = cv::Mat(D.size(), 1, CV_32FC1, d);
+  //   R1 = cv::Mat(3, 3, CV_32FC1, r);
+  //   T1 = cv::Mat(3, 1, CV_32FC1, t);
+  //   // cv::Mat img = cv::imread(imgName);
+  //   return ProjectToRawMat(img, K1, D1, R1, T1);
+  // }
 
   cv::Mat ProjectToFisheyeMat(cv::Mat img, cv::Mat K, cv::Mat D, cv::Mat R,
                               cv::Mat T) {

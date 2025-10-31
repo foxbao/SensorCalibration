@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(lidar2camera)
-set(CMAKE_CXX_FLAGS "-g3 -O -Wall")
+set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_CXX_FLAGS "-g3 -O -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "-g3 -O0 -Wall")
+
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+
 
 find_package(Pangolin 0.6 REQUIRED)
 include_directories(${Pangolin_INCLUDE_DIRS})

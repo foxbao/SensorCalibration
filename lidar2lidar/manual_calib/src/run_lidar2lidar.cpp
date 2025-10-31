@@ -276,6 +276,11 @@ void saveResult(const int &frame_id,
         q.x(), q.y(), q.z(), q.w()
     };
 
+    j["RPYXYZ"] = {
+      roll_deg, pitch_deg, yaw_deg,
+      t.x(), t.y(), t.z()
+  };
+
   // 加入 T_<base_name> 字段
   if (!base_filename.empty()) {
       std::string base_name = GetFileBaseName(base_filename);
